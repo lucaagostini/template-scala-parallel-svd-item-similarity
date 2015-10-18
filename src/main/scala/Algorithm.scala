@@ -213,9 +213,9 @@ class Algorithm(val ap: AlgorithmParams)
         )
         m
     })
-    esPredictedResults.saveToEs("/cbs1/items", Map("es.mapping.id" -> "id"))
+    //esPredictedResults.saveToEs("/cbs1/items", Map("es.mapping.id" -> "id"))
     logger.info(esPredictedResults)
-    //esClient.hotSwap("cbs", "items", esPredictedResults.asInstanceOf[RDD[scala.collection.Map[String,Any]]])
+    esClient.hotSwap("cbs", "items", esPredictedResults.asInstanceOf[RDD[scala.collection.Map[String,Any]]])
     res
   }
 
