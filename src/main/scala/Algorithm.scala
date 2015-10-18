@@ -202,17 +202,20 @@ class Algorithm(val ap: AlgorithmParams)
     }
     println("res: " +  res)
     val esPredictedResults = sc.parallelize(res.itemIds.toSeq.map{case (itemId, y) =>
-        var m: scala.collection.Map[String, Any] = Map()
         val predictedResult = predict(res, Query(Array(itemId), 10))
-        m = m + ("id" -> itemId)
-        m = m + ("similar_items" ->
-          predictedResult.itemScores.filter(_.score > 0.5).map { itemScore =>
-          Map("id" -> itemScore.item, "score" -> itemScore.score)
-        })
+        val m: Map[String, Any] = Map (
+          "id" -> itemId,
+          "similar_items" ->
+            predictedResult.itemScores.map { itemScore =>
+            //Map("id" -> itemScore.item, "score" -> itemScore.score)
+            itemScore.item + ":" + itemScore.score
+            }
+        )
         m
     })
+    esPredictedResults.saveToEs("/cbs1/items", Map("es.mapping.id" -> "id"))
     logger.info(esPredictedResults)
-    esClient.hotSwap("cbs", "items", esPredictedResults)
+    //esClient.hotSwap("cbs", "items", esPredictedResults.asInstanceOf[RDD[scala.collection.Map[String,Any]]])
     res
   }
 
