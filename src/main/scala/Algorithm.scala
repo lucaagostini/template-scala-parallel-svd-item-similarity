@@ -9,6 +9,7 @@ import org.apache.spark.mllib.feature.{Normalizer, StandardScaler}
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
 import org.apache.spark.mllib.linalg._
 import org.apache.spark.rdd.RDD
+import org.elasticsearch.spark._
 
 import grizzled.slf4j.Logger
 
@@ -16,7 +17,13 @@ import scala.reflect.ClassTag
 
 class Model(val itemIds: BiMap[String, Int], val projection: DenseMatrix)
   extends Serializable {
-  override def toString = s"Items: ${itemIds.size}"
+  override def toString = {
+    itemIds.toMap.foldLeft("*****\n*****" + s"Items: ${itemIds.size}")( { (x, y) =>
+        x + "=>" + y + "\n"
+    }) + "\n\n\n" + projection.numRows + "x" + projection.numCols
+
+
+  }
 }
 
 case class AlgorithmParams(dimensions: Int, yearWeight: Double,
@@ -193,7 +200,19 @@ class Algorithm(val ap: AlgorithmParams)
 
       new Model(itemIds, projection)
     }
-
+    println("res: " +  res)
+    val esPredictedResults = sc.parallelize(res.itemIds.toSeq.map{case (itemId, y) =>
+        var m: scala.collection.Map[String, Any] = Map()
+        val predictedResult = predict(res, Query(Array(itemId), 10))
+        m = m + ("id" -> itemId)
+        m = m + ("similar_items" ->
+          predictedResult.itemScores.filter(_.score > 0.5).map { itemScore =>
+          Map("id" -> itemScore.item, "score" -> itemScore.score)
+        })
+        m
+    })
+    logger.info(esPredictedResults)
+    esClient.hotSwap("cbs", "items", esPredictedResults)
     res
   }
 
@@ -204,8 +223,10 @@ class Algorithm(val ap: AlgorithmParams)
 
      * It is possible to use other grouping functions instead of max
      */
+    logger.info("query: " + query)
 
     val result = query.items.flatMap { itemId =>
+      logger.info("itemId: " + itemId)
       model.itemIds.get(itemId).map { j =>
         val d = for(i <- 0 until model.projection.numRows) yield model.projection(i, j)
         val col = model.projection.transpose.multiply(new DenseVector(d.toArray))
@@ -218,6 +239,7 @@ class Algorithm(val ap: AlgorithmParams)
       case(ItemScore(itemId, _)) => !query.items.contains(itemId)
     }.toArray.sorted.reverse.take(query.num)
 
+    result.foreach{x => logger.info("result: " +  x)}
     if(result.isEmpty) logger.info(s"No prediction for items ${query.items}.")
     PredictedResult(result)
   }

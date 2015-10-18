@@ -46,6 +46,7 @@ class DataSource(val dsp: DataSourceParams)
           throw e
         }
       }
+      println("entityId: " + entityId + " - item: " + item)
       (entityId, item)
     }.cache()
 
