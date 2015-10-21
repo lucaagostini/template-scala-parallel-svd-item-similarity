@@ -8,6 +8,7 @@ organization := "io.prediction"
 
 libraryDependencies ++= Seq(
   "io.prediction"    %% "core"          % pioVersion.value % "provided",
+  "com.fasterxml.jackson.core" % "jackson-core" % "2.6.3",
   "org.elasticsearch" % "elasticsearch-spark_2.10" % "2.1.0.Beta4"
     exclude("org.apache.spark", "spark-catalyst_2.10")
     exclude("org.apache.spark", "spark-sql_2.10"),

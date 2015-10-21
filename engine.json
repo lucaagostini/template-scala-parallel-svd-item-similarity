@@ -7,6 +7,12 @@
       "appName": "cbs"
     }
   },
+  "sparkConf": {
+    "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+    "spark.kryo.referenceTracking": "false",
+    "spark.kryoserializer.buffer": "300",
+    "es.index.auto.create": "true"
+  },
   "algorithms": [
     {
       "name": "algo",
